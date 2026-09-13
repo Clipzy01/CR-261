@@ -1,0 +1,13 @@
+{
+  "name": "attendance-app-provisioning",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Script local pentru crearea conturilor studentilor in Firebase (rulat o data din VS Code, nu se hosteaza).",
+  "scripts": {
+    "create-students": "node create-students.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.1.0"
+  }
+}

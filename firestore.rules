@@ -1,0 +1,52 @@
+rules_version = '2';
+
+// Reguli de securitate Firestore pentru aplicatia de prezenta.
+// Copiaza tot continutul acestui fisier in Firebase Console > Firestore Database > Rules > Publish.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Director public (nume + email) - creat doar de scriptul de provizionare.
+    // Studentii au nevoie sa il citeasca pentru a afla ce email corespunde numelui lor la login.
+    match /students/{studentSlug} {
+      allow read: if true;
+      allow write: if false; // scris doar prin scripts/create-students.mjs (Admin SDK)
+    }
+
+    // Marcheaza cine e responsabil de grupa. Documentele se adauga manual din consola.
+    match /admins/{uid} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // Meta: care e prelegerea activa acum (un singur document, id fix "current").
+    match /meta/activeSession {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Prelegerile (sesiunile de prezenta).
+    match /sessions/{sessionId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+
+      // Prezenta per student, in interiorul unei prelegeri.
+      // studentUid trebuie sa fie EXACT uid-ul celui autentificat -> nimeni
+      // nu poate scrie prezenta in contul altcuiva, e verificat de server.
+      match /attendance/{studentUid} {
+        allow read: if isSignedIn();
+        allow create, update: if isSignedIn() && request.auth.uid == studentUid;
+        allow delete: if isAdmin();
+      }
+    }
+  }
+}
